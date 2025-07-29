@@ -3,18 +3,13 @@ package be16.ordersystem.member.controller;
 import be16.ordersystem.common.auth.JwtTokenProvider;
 import be16.ordersystem.common.dto.CommonDto;
 import be16.ordersystem.member.domain.Member;
-import be16.ordersystem.member.dto.LoginResDto;
-import be16.ordersystem.member.dto.MemberCreateDto;
-import be16.ordersystem.member.dto.LoginReqDto;
-import be16.ordersystem.member.dto.MemberResDto;
+import be16.ordersystem.member.dto.*;
 import be16.ordersystem.member.service.MemberService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/member")
@@ -44,19 +39,40 @@ public class MemberController {
         Member member = memberService.login(loginReqDto);
         // at 토큰 생성
         String accessToken = jwtTokenProvider.createAtToken(member);
-
         // rt 토큰 생성
-        String refreshToken = jwtTokenProvider.createRtToken(member)
-
+        String refreshToken = jwtTokenProvider.createRtToken(member);
 
         LoginResDto loginResDto = LoginResDto.builder()
                 .accessToken(accessToken)
+                .refreshToren(refreshToken)
                 .build();
+
         return new ResponseEntity<>(
                 CommonDto.builder()
                         .result(loginResDto)
                         .statusCode(HttpStatus.OK.value())
-                        .statusMessage("회원가입 완료")
+                        .statusMessage("로그인 완료")
+                        .build()
+                , HttpStatus.OK);
+    }
+
+    // rt를 통한 at 갱신 요청
+    @PostMapping("/refresh-at")
+    public ResponseEntity<?> generateNewAt(@RequestBody RefreshTokenDto refreshTokenDto){
+        // rt 검증 로직
+        Member member = jwtTokenProvider.validateRt(refreshTokenDto.getRefreshToken());
+
+        // at 신규 생성
+        String accessToken = jwtTokenProvider.createAtToken(member);
+        LoginResDto loginResDto = LoginResDto.builder()
+                .accessToken(accessToken)
+                .build();
+
+        return new ResponseEntity<>(
+                CommonDto.builder()
+                        .result(loginResDto)
+                        .statusCode(HttpStatus.OK.value())
+                        .statusMessage("AT 재발급 완료")
                         .build()
                 , HttpStatus.OK);
     }
@@ -95,16 +111,5 @@ public class MemberController {
                         .statusMessage("회원탈퇴 완료")
                         .build()
                 , HttpStatus.OK);
-    }
-
-    // rt를 통한 at 갱신 요청
-    @PostMapping("/refresh-at")
-    public ResponseEntity<?> generateNewAt(){
-        // rt 검증 로직
-
-        // at 신규 생성
-
-
-        return null;
     }
 }

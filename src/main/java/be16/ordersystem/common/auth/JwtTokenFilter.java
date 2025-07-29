@@ -1,11 +1,7 @@
 package be16.ordersystem.common.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.*;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -25,8 +21,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
 
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,16 +33,19 @@ import java.util.Map;
 @Slf4j
 public class JwtTokenFilter extends GenericFilterBean {
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private Key key;
+    private Key secret_at_key;
+    private Key secret_rt_key;
 
     @PostConstruct
     public void init() {
-        byte[] keyBytes = secretKeyAt.getBytes(StandardCharsets.UTF_8);
-        this.key = Keys.hmacShaKeyFor(keyBytes);
+        secret_at_key = new SecretKeySpec(java.util.Base64.getDecoder().decode(secretKeyAt), SignatureAlgorithm.HS512.getJcaName());
+        secret_rt_key = new SecretKeySpec(java.util.Base64.getDecoder().decode(secretKeyRt), SignatureAlgorithm.HS512.getJcaName());
     }
 
     @Value("${jwt.secretKeyAt}")
     private String secretKeyAt;
+    @Value("${jwt.secretKeyRt}")
+    private String secretKeyRt;
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
@@ -62,7 +61,7 @@ public class JwtTokenFilter extends GenericFilterBean {
         try {
             String token = bearerToken.substring(7);
             Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(key)
+                    .setSigningKey(secretKeyAt)
                     .build()
                     .parseClaimsJws(token)
                     .getBody();

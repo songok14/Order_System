@@ -1,6 +1,9 @@
-package be16.ordersystem.common.auth;
+package be16.ordersystem.common.config;
 
 
+import be16.ordersystem.common.auth.JwtAuthenticationHandler;
+import be16.ordersystem.common.auth.JwtAuthorizationHandler;
+import be16.ordersystem.common.auth.JwtTokenFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,7 +41,7 @@ public class SecurityConfig {
                         e.authenticationEntryPoint(jwtAuthenticationHandler)        // 401
                                 .accessDeniedHandler(jwtAuthorizationHandler)       // 403
                 )
-                .authorizeHttpRequests(a -> a.requestMatchers("/member/create", "/member/login").permitAll().anyRequest().authenticated())
+                .authorizeHttpRequests(a -> a.requestMatchers("/member/create", "/member/login", "member/refresh-at").permitAll().anyRequest().authenticated())
                 .build();
     }
 
