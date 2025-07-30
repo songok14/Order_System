@@ -3,6 +3,7 @@ package be16.ordersystem.product.controller;
 import be16.ordersystem.common.dto.CommonDto;
 import be16.ordersystem.product.dto.ProductCreateDto;
 import be16.ordersystem.product.dto.ProductSearchDto;
+import be16.ordersystem.product.dto.ProductUpdateDto;
 import be16.ordersystem.product.service.ProductService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,18 @@ public class ProductController {
                 , HttpStatus.CREATED);
     }
 
+    @PutMapping("/update/{targetId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> productUpdate(@PathVariable Long targetId, @ModelAttribute ProductUpdateDto productUpdateDto){
+        Long id = productService.productUpdate(targetId, productUpdateDto);
+        return new ResponseEntity<>(
+                CommonDto.builder()
+                        .result(id)
+                        .statusCode(HttpStatus.OK.value())
+                        .statusMessage("상품 업데이트 완료")
+                        .build()
+                , HttpStatus.OK);    }
+
     @GetMapping("/list")
     public ResponseEntity<?> productList(Pageable pageable, ProductSearchDto productSearchDto) {
         return new ResponseEntity<>(
@@ -50,7 +63,7 @@ public class ProductController {
                 CommonDto.builder()
                         .result(productService.productDetail(id))
                         .statusCode(HttpStatus.OK.value())
-                        .statusMessage("상품 목록 조회")
+                        .statusMessage("상품 상세 조회")
                         .build()
                 , HttpStatus.OK);
     }

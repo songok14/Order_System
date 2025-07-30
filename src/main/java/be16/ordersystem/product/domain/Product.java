@@ -2,6 +2,7 @@ package be16.ordersystem.product.domain;
 
 import be16.ordersystem.common.domain.BaseTimeEntity;
 import be16.ordersystem.member.domain.Member;
+import be16.ordersystem.product.dto.ProductUpdateDto;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -11,7 +12,7 @@ import lombok.*;
 @Builder
 @Entity
 @ToString
-public class Product extends BaseTimeEntity{
+public class Product extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -30,5 +31,16 @@ public class Product extends BaseTimeEntity{
 
     public void updateImageUrl(String imgUrl) {
         this.imagePath = imgUrl;
+    }
+
+    public void updateProduct(ProductUpdateDto productUpdateDto) {
+        this.name = productUpdateDto.getName();
+        this.category = productUpdateDto.getCategory();
+        this.price = productUpdateDto.getPrice();
+        this.stockQuantity = productUpdateDto.getStockQuantity();
+    }
+
+    public void updateStockQuantity(int quantity){
+        this.stockQuantity -= quantity;
     }
 }

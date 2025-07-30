@@ -1,8 +1,10 @@
 package be16.ordersystem.common.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.*;
-import jakarta.annotation.PostConstruct;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -21,9 +23,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
 
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
-import java.security.Key;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,14 +33,6 @@ import java.util.Map;
 @Slf4j
 public class JwtTokenFilter extends GenericFilterBean {
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private Key secret_at_key;
-    private Key secret_rt_key;
-
-    @PostConstruct
-    public void init() {
-        secret_at_key = new SecretKeySpec(java.util.Base64.getDecoder().decode(secretKeyAt), SignatureAlgorithm.HS512.getJcaName());
-        secret_rt_key = new SecretKeySpec(java.util.Base64.getDecoder().decode(secretKeyRt), SignatureAlgorithm.HS512.getJcaName());
-    }
 
     @Value("${jwt.secretKeyAt}")
     private String secretKeyAt;

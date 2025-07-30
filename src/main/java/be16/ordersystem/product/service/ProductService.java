@@ -6,6 +6,7 @@ import be16.ordersystem.product.domain.Product;
 import be16.ordersystem.product.dto.ProductCreateDto;
 import be16.ordersystem.product.dto.ProductResDto;
 import be16.ordersystem.product.dto.ProductSearchDto;
+import be16.ordersystem.product.dto.ProductUpdateDto;
 import be16.ordersystem.product.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -51,7 +52,7 @@ public class ProductService {
 
         Product product = productRepository.save(productCreateDto.toEntity(member));
 
-        if (productCreateDto.getProductImage() != null) {
+        if (productCreateDto.getProductImage() != null && !productCreateDto.getProductImage().isEmpty()) {
             String fileName = "product-" + product.getId() + "-productImage-" + productCreateDto.getProductImage().getOriginalFilename();
 
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -71,6 +72,37 @@ public class ProductService {
             product.updateImageUrl(imgUrl);
         }
         return product.getId();
+    }
+
+    public Long productUpdate(Long targetId, ProductUpdateDto productUpdateDto) {
+        Product target = productRepository.findById(targetId).orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다."));
+        target.updateProduct(productUpdateDto);
+        String targetFileName = target.getImagePath().substring(target.getImagePath().lastIndexOf("/")+1);
+
+        if (productUpdateDto.getProductImage() != null &&!productUpdateDto.getProductImage().isEmpty()) {
+            // 이미지 삭제 후 다시 저장
+            s3Client.deleteObject(a -> a.bucket(bucket).key(targetFileName));
+
+            String fileName = "product-" + target.getId() + "-productImage-" + productUpdateDto.getProductImage().getOriginalFilename();
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(fileName)
+                    .contentType(productUpdateDto.getProductImage().getContentType())
+                    .build();
+
+            try {
+                s3Client.putObject(putObjectRequest, RequestBody.fromBytes(productUpdateDto.getProductImage().getBytes()));
+            } catch (Exception e) {
+                log.error(e.getMessage());
+                throw new IllegalArgumentException("이미지 업로드 실패");
+            }
+
+            String imgUrl = s3Client.utilities().getUrl(a -> a.bucket(bucket).key(fileName)).toExternalForm();
+            target.updateImageUrl(imgUrl);
+        } else {
+            target.updateImageUrl(null);
+        }
+        return target.getId();
     }
 
     public Page<ProductResDto> findAll(Pageable pageable, ProductSearchDto productSearchDto) {
