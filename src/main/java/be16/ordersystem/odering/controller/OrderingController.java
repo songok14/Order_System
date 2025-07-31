@@ -21,7 +21,7 @@ public class OrderingController {
 
     @PostMapping("/create")
     public ResponseEntity<?> create(@RequestBody List<OrderCreateDto> orderCreateDtoList) {
-        Long id = orderingService.createOrdering(orderCreateDtoList);
+        Long id = orderingService.createConcurrent(orderCreateDtoList);
         return new ResponseEntity<>(
                 CommonDto.builder()
                         .result(id)
@@ -37,15 +37,26 @@ public class OrderingController {
 //        System.out.println(orderDetailDto);
 //        return null;
 //    }
-
     @GetMapping("/list")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> orderList(){
+    public ResponseEntity<?> orderList() {
         return new ResponseEntity<>(
                 CommonDto.builder()
                         .result(orderingService.orderingList())
                         .statusCode(HttpStatus.OK.value())
-                        .statusMessage("주문 조회")
+                        .statusMessage("주문목록 조회")
+                        .build(),
+                HttpStatus.OK);
+    }
+
+    @GetMapping("/myorders")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<?> myOrders() {
+        return new ResponseEntity<>(
+                CommonDto.builder()
+                        .result(orderingService.myOrders())
+                        .statusCode(HttpStatus.OK.value())
+                        .statusMessage("나의 주문목록 조회")
                         .build(),
                 HttpStatus.OK);
     }

@@ -1,11 +1,12 @@
 package be16.ordersystem.odering.service;
 
+import be16.ordersystem.common.service.StockInventoryService;
+import be16.ordersystem.common.service.StockRabbitMqService;
 import be16.ordersystem.member.domain.Member;
 import be16.ordersystem.member.repository.MemberRepository;
 import be16.ordersystem.odering.domain.OrderDetail;
 import be16.ordersystem.odering.domain.Ordering;
 import be16.ordersystem.odering.dto.OrderCreateDto;
-import be16.ordersystem.odering.dto.OrderDetailDto;
 import be16.ordersystem.odering.dto.OrderListResDto;
 import be16.ordersystem.odering.repository.OrderDetailRepository;
 import be16.ordersystem.odering.repository.OrderingRepository;
@@ -15,9 +16,9 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,15 +27,19 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OrderingService {
     private final OrderingRepository orderingRepository;
-    private final OrderDetailRepository orderDetailRepository;
     private final MemberRepository memberRepository;
     private final ProductRepository productRepository;
+    private final StockInventoryService stockInventoryService;
+    private final OrderDetailRepository orderDetailRepository;
+    private final StockRabbitMqService stockRabbitMqService;
 
-    public OrderingService(OrderingRepository orderingRepository, OrderDetailRepository orderDetailRepository, OrderDetailRepository orderDetailRepository1, MemberRepository memberRepository, ProductRepository productRepository) {
+    public OrderingService(OrderingRepository orderingRepository, OrderDetailRepository orderDetailRepository, OrderDetailRepository orderDetailRepository1, MemberRepository memberRepository, ProductRepository productRepository, StockInventoryService stockInventoryService, OrderDetailRepository orderDetailRepository2, StockRabbitMqService stockRabbitMqService) {
         this.orderingRepository = orderingRepository;
-        this.orderDetailRepository = orderDetailRepository1;
         this.memberRepository = memberRepository;
         this.productRepository = productRepository;
+        this.stockInventoryService = stockInventoryService;
+        this.orderDetailRepository = orderDetailRepository2;
+        this.stockRabbitMqService = stockRabbitMqService;
     }
 
     public Long createOrdering(List<OrderCreateDto> orderCreateDtoList) {
@@ -65,28 +70,70 @@ public class OrderingService {
         return id;
     }
 
-    public List<OrderListResDto> orderingList() {
-        List<Ordering> orderingList = orderingRepository.findAll();
-        List<OrderListResDto> orderListResDtoList = new ArrayList<>();
+    // 격리 레벨을 낮추므로 성능향상과 lock 관련 문제 원청 차단
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Long createConcurrent(List<OrderCreateDto> orderCreateDtoList) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Member member = memberRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("존재하지 않는 회원입니다."));
+        Ordering ordering = Ordering.builder()
+                .member(member)
+                .build();
+        Long id = orderingRepository.save(ordering).getId();
 
-        for (Ordering ordering : orderingList) {
-            List<OrderDetail> orderDetailList = ordering.getOrderDetailList();
-            List<OrderDetailDto> orderDetailDtoList = new ArrayList<>();
-            for (OrderDetail orderDetail : orderDetailList) {
-                orderDetailDtoList.add(OrderDetailDto.builder()
-                        .detailId(orderDetail.getId())
-                        .productName(orderDetail.getProduct().getName())
-                        .productCount(orderDetail.getQuantity())
-                        .build());
+        for (OrderCreateDto orderCreateDto : orderCreateDtoList) {
+            Product product = productRepository.findById(orderCreateDto.getProductId()).orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다."));
+
+            int newQuantity = stockInventoryService.decreaseStockQuantity(product.getId(), orderCreateDto.getProductCount());
+            if (newQuantity < 0) {
+                throw new IllegalArgumentException("재고가 부족합니다.");
             }
-            orderListResDtoList.add(OrderListResDto.builder()
-                    .id(ordering.getId())
-                    .memberEmail(ordering.getMember().getEmail())
-                    .orderStatus(ordering.getOrderStatus())
-                    .orderDetails(orderDetailDtoList)
-                    .build());
+
+            OrderDetail orderDetail = OrderDetail.builder()
+                    .product(product)
+                    .quantity(orderCreateDto.getProductCount())
+                    .ordering(ordering)
+                    .build();
+            ordering.getOrderDetailList().add(orderDetail);     // cascade 사용
+            // rdb에 사후 업데이트를 위해 메시지 발행(비동기 처리)
+            stockRabbitMqService.publish(orderCreateDto.getProductId(), orderCreateDto.getProductCount());
         }
 
-        return orderListResDtoList;
+        orderingRepository.save(ordering);
+
+        return id;
+    }
+
+    public List<OrderListResDto> orderingList() {
+        return orderingRepository.findAll().stream().map(o -> OrderListResDto.fromEntity(o)).collect(Collectors.toList());
+//
+//        List<Ordering> orderingList = orderingRepository.findAll();
+//        List<OrderListResDto> orderListResDtoList = new ArrayList<>();
+//
+//        for (Ordering ordering : orderingList) {
+//            List<OrderDetail> orderDetailList = ordering.getOrderDetailList();
+//            List<OrderDetailDto> orderDetailDtoList = new ArrayList<>();
+//            for (OrderDetail orderDetail : orderDetailList) {
+//                orderDetailDtoList.add(OrderDetailDto.builder()
+//                        .detailId(orderDetail.getId())
+//                        .productName(orderDetail.getProduct().getName())
+//                        .productCount(orderDetail.getQuantity())
+//                        .build());
+//            }
+//            orderListResDtoList.add(OrderListResDto.builder()
+//                    .id(ordering.getId())
+//                    .memberEmail(ordering.getMember().getEmail())
+//                    .orderStatus(ordering.getOrderStatus())
+//                    .orderDetails(orderDetailDtoList)
+//                    .build());
+//        }
+//
+//        return orderListResDtoList;
+    }
+
+    public List<OrderListResDto> myOrders() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Member member = memberRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("존재하지 않는 회원입니다."));
+
+        return orderingRepository.findAllByMember(member).stream().map(o -> OrderListResDto.fromEntity(o)).collect(Collectors.toList());
     }
 }

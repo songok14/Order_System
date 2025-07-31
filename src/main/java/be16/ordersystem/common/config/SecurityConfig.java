@@ -41,7 +41,7 @@ public class SecurityConfig {
                         e.authenticationEntryPoint(jwtAuthenticationHandler)        // 401
                                 .accessDeniedHandler(jwtAuthorizationHandler)       // 403
                 )
-                .authorizeHttpRequests(a -> a.requestMatchers("/member/create", "/member/login", "member/refresh-at").permitAll().anyRequest().authenticated())
+                .authorizeHttpRequests(a -> a.requestMatchers("/member/create", "/member/login", "member/refresh-at", "product/list").permitAll().anyRequest().authenticated())
                 .build();
     }
 

@@ -1,5 +1,6 @@
 package be16.ordersystem.product.service;
 
+import be16.ordersystem.common.service.StockInventoryService;
 import be16.ordersystem.member.domain.Member;
 import be16.ordersystem.member.repository.MemberRepository;
 import be16.ordersystem.product.domain.Product;
@@ -35,15 +36,18 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final MemberRepository memberRepository;
     private final S3Client s3Client;
+    private final StockInventoryService stockInventoryService;
+
     @Value("${jwt.secretKeyAt}")
     private String secretKey;
     @Value("${cloud.s3.bucket}")
     private String bucket;
 
-    public ProductService(ProductRepository productRepository, MemberRepository memberRepository, S3Client s3Client) {
+    public ProductService(ProductRepository productRepository, MemberRepository memberRepository, S3Client s3Client, StockInventoryService stockInventoryService) {
         this.productRepository = productRepository;
         this.memberRepository = memberRepository;
         this.s3Client = s3Client;
+        this.stockInventoryService = stockInventoryService;
     }
 
     public Long addProduct(ProductCreateDto productCreateDto) {
@@ -71,9 +75,14 @@ public class ProductService {
             String imgUrl = s3Client.utilities().getUrl(a -> a.bucket(bucket).key(fileName)).toExternalForm();
             product.updateImageUrl(imgUrl);
         }
+
+        // 상품 등록 시 redis에 재고 세팅
+        stockInventoryService.makeStockQuantity(product.getId(), product.getStockQuantity());
         return product.getId();
     }
 
+    // 1. 동시에 접근하는 상황에서 update 값의 정합성이 깨지고 갱신이상이 발생
+    // 2. spring 버전이나 mysql 버전에 따라 jpa에서 강제에러(deadlock)를 유발시켜 대부분의 요청 실패 발생
     public Long productUpdate(Long targetId, ProductUpdateDto productUpdateDto) {
         Product target = productRepository.findById(targetId).orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다."));
         target.updateProduct(productUpdateDto);
