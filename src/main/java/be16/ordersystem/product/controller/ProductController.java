@@ -57,13 +57,13 @@ public class ProductController {
                 , HttpStatus.OK);
     }
 
-    @GetMapping("/detail/{id}")
+    @DeleteMapping("/detail/{id}")
     public ResponseEntity<?> productListDetail(@PathVariable Long id) {
         return new ResponseEntity<>(
                 CommonDto.builder()
                         .result(productService.productDetail(id))
                         .statusCode(HttpStatus.OK.value())
-                        .statusMessage("상품 상세 조회")
+                        .statusMessage("상품 삭제 완료")
                         .build()
                 , HttpStatus.OK);
     }

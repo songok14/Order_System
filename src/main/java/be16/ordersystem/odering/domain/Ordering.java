@@ -28,4 +28,8 @@ public class Ordering extends BaseTimeEntity {
     @OneToMany(mappedBy = "ordering", cascade = CascadeType.PERSIST)
     @Builder.Default
     private List<OrderDetail> orderDetailList = new ArrayList<>();
+
+    public void updateOrderStatus(OrderStatus orderStatus){
+        this.orderStatus = orderStatus;
+    }
 }
