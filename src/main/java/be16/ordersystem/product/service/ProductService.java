@@ -26,6 +26,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -73,7 +74,13 @@ public class ProductService {
             }
 
             String imgUrl = s3Client.utilities().getUrl(a -> a.bucket(bucket).key(fileName)).toExternalForm();
-            product.updateImageUrl(imgUrl);
+            try {
+                String decodedUrl = java.net.URLDecoder.decode(imgUrl, "UTF-8");
+                product.updateImageUrl(decodedUrl);
+            } catch (UnsupportedEncodingException e) {
+                log.error(e.getMessage());
+                product.updateImageUrl(imgUrl);
+            }
         }
 
         // 상품 등록 시 redis에 재고 세팅
@@ -86,9 +93,9 @@ public class ProductService {
     public Long productUpdate(Long targetId, ProductUpdateDto productUpdateDto) {
         Product target = productRepository.findById(targetId).orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다."));
         target.updateProduct(productUpdateDto);
-        String targetFileName = target.getImagePath().substring(target.getImagePath().lastIndexOf("/")+1);
+        String targetFileName = target.getImagePath().substring(target.getImagePath().lastIndexOf("/") + 1);
 
-        if (productUpdateDto.getProductImage() != null &&!productUpdateDto.getProductImage().isEmpty()) {
+        if (productUpdateDto.getProductImage() != null && !productUpdateDto.getProductImage().isEmpty()) {
             // 이미지 삭제 후 다시 저장
             s3Client.deleteObject(a -> a.bucket(bucket).key(targetFileName));
 

@@ -117,9 +117,7 @@ public class OrderingService {
                 .orderDetailList(new ArrayList<>())
                 .build();
         for (OrderCreateDto orderCreateDto : orderCreateDtoList) {
-            Product product = productRepository.findById(orderCreateDto.getProductId()).orElseThrow(
-                    () -> new EntityNotFoundException("해당 상품은 존재하지 않습니다.")
-            );
+            Product product = productRepository.findById(orderCreateDto.getProductId()).orElseThrow(() -> new EntityNotFoundException("해당 상품은 존재하지 않습니다."));
 
 //            redis에서 재고수량 확인 및 재고수량 감소 처리
             int newQuantity = stockInventoryService.decreaseStockQuantity(product.getId(), orderCreateDto.getProductCount());

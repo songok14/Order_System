@@ -34,7 +34,7 @@ public class MemberController {
                 , HttpStatus.CREATED);
     }
 
-    @PostMapping("/login")
+    @PostMapping("/dologin")
     public ResponseEntity<?> login(@RequestBody LoginReqDto loginReqDto) {
         Member member = memberService.login(loginReqDto);
         // at 토큰 생성

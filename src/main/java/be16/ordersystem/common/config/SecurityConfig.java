@@ -4,6 +4,7 @@ package be16.ordersystem.common.config;
 import be16.ordersystem.common.auth.JwtAuthenticationHandler;
 import be16.ordersystem.common.auth.JwtAuthorizationHandler;
 import be16.ordersystem.common.auth.JwtTokenFilter;
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,8 +42,15 @@ public class SecurityConfig {
                         e.authenticationEntryPoint(jwtAuthenticationHandler)        // 401
                                 .accessDeniedHandler(jwtAuthorizationHandler)       // 403
                 )
-                .authorizeHttpRequests(a -> a.requestMatchers("/member/create", "/member/login", "member/refresh-at", "product/list").permitAll().anyRequest().authenticated())
-                .build();
+                .authorizeHttpRequests(a -> a.requestMatchers(
+                                "/member/create",
+                                "/member/dologin",
+                                "member/refresh-at",
+                                "product/list",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html")
+                        .permitAll().anyRequest().authenticated()).build();
     }
 
     private CorsConfigurationSource corsConfiguration() {
