@@ -51,7 +51,6 @@ public class OrderingController {
     }
 
     @GetMapping("/myorders")
-    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> myOrders() {
         return new ResponseEntity<>(
                 CommonDto.builder()

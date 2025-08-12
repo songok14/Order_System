@@ -72,7 +72,7 @@ public class JwtTokenProvider {
         String refreshToken = Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + expirationAt * 60 * 1000L))
+                .setExpiration(new Date(now.getTime() + expirationRt * 60 * 1000L))
                 .signWith(this.secret_rt_key, SignatureAlgorithm.HS512)
                 .compact();
 

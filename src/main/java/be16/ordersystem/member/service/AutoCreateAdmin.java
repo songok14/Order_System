@@ -21,7 +21,7 @@ public class AutoCreateAdmin implements CommandLineRunner {
         }
         Member admin = Member.builder()
                 .email("admin@naver.com")
-                .password(passwordEncoder.encode("1234512345"))
+                .password(passwordEncoder.encode("12341234"))
                 .name("admin")
                 .role(Role.ADMIN)
                 .build();

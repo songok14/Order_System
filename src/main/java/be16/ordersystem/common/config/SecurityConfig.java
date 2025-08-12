@@ -1,10 +1,8 @@
 package be16.ordersystem.common.config;
 
-
 import be16.ordersystem.common.auth.JwtAuthenticationHandler;
 import be16.ordersystem.common.auth.JwtAuthorizationHandler;
 import be16.ordersystem.common.auth.JwtTokenFilter;
-import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,10 +41,10 @@ public class SecurityConfig {
                                 .accessDeniedHandler(jwtAuthorizationHandler)       // 403
                 )
                 .authorizeHttpRequests(a -> a.requestMatchers(
+                                "/member/refresh-at",
                                 "/member/create",
                                 "/member/dologin",
-                                "member/refresh-at",
-                                "product/list",
+                                "/product/list",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html")

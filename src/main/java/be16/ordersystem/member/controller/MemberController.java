@@ -44,7 +44,7 @@ public class MemberController {
 
         LoginResDto loginResDto = LoginResDto.builder()
                 .accessToken(accessToken)
-                .refreshToren(refreshToken)
+                .refreshToken(refreshToken)
                 .build();
 
         return new ResponseEntity<>(
@@ -89,8 +89,18 @@ public class MemberController {
                 , HttpStatus.OK);
     }
 
+    @GetMapping("/detail/{memberId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> detail(@PathVariable Long memberId) {
+        return new ResponseEntity<>(
+                CommonDto.builder()
+                        .result(memberService.memberDetail(memberId))
+                        .statusCode(HttpStatus.OK.value())
+                        .statusMessage("회원 목록 조회")
+                        .build()
+                , HttpStatus.OK);
+    }
     @GetMapping("/myinfo")
-    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> myInfo() {
         return new ResponseEntity<>(
                 CommonDto.builder()

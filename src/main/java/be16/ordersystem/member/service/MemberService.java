@@ -21,12 +21,10 @@ import java.util.stream.Collectors;
 public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
 
     public MemberService(MemberRepository memberRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
         this.memberRepository = memberRepository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     public Long memberJoin(MemberCreateDto memberCreateDto) {
@@ -62,12 +60,18 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
+    public MemberResDto memberDetail(Long id) {
+        Member member = memberRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("존재하지 않는 회원입니다."));
+        return MemberResDto.fromEntity(member);
+    }
+
+    @Transactional(readOnly = true)
     public MemberResDto myInfo() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return MemberResDto.fromEntity(memberRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("존재하지 않는 회원입니다.")));
     }
 
-    public void delete(){
+    public void delete() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         memberRepository.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("존재하지 않는 회원입니다.")).deleteMember("Y");
     }
