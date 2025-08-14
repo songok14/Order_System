@@ -89,7 +89,7 @@ public class RedisConfig {
     @Bean
     @Qualifier("ssePubSub")
     public RedisMessageListenerContainer redisMessageListenerContainer(
-            @Qualifier("stockInventory") RedisConnectionFactory redisConnectionFactory,
+            @Qualifier("ssePubSub") RedisConnectionFactory redisConnectionFactory,
             MessageListenerAdapter messageListenerAdapter){
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(redisConnectionFactory);
